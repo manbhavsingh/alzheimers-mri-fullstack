@@ -1,0 +1,344 @@
+.app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Header ---------- */
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-mark {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: 15px;
+}
+
+.header-tagline {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: var(--font-display);
+}
+
+/* ---------- Main / layout ---------- */
+.app-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+
+.stage-center {
+  width: 100%;
+  max-width: 560px;
+}
+
+.results-layout {
+  width: 100%;
+  max-width: 920px;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .results-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Upload panel ---------- */
+.upload-panel {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 56px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.upload-panel:hover,
+.upload-panel.drag-over {
+  border-color: var(--accent);
+  background: var(--panel-raised);
+}
+
+.upload-icon {
+  font-size: 28px;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.upload-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.upload-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  margin: 0;
+}
+
+/* ---------- Loading ---------- */
+.loading-block {
+  text-align: center;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+
+.scan-line {
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--accent),
+    transparent
+  );
+  margin-bottom: 16px;
+  animation: sweep 1.4s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.4;
+  }
+}
+
+/* ---------- Error ---------- */
+.error-block {
+  text-align: center;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  padding: 28px;
+  background: var(--panel);
+}
+
+.error-title {
+  color: var(--danger);
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.error-detail {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.new-scan-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+/* ---------- Compare slider (signature element) ---------- */
+.compare-slider-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.compare-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.compare-slider {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 6px;
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+}
+
+.compare-slider img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.compare-clip {
+  position: absolute;
+  inset: 0;
+}
+
+.compare-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+
+.compare-handle-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 3px solid var(--panel);
+}
+
+/* ---------- Result panel ---------- */
+.result-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.result-headline {
+  margin-bottom: 20px;
+}
+
+.result-eyebrow {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.result-headline h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+.result-confidence {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.probability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.probability-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.probability-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.probability-track {
+  height: 6px;
+  background: var(--panel-raised);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.probability-fill {
+  height: 100%;
+  background: var(--text-secondary);
+  border-radius: 3px;
+}
+
+.probability-fill.active {
+  background: var(--accent);
+}
+
+.probability-value {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+  min-width: 42px;
+}
+
+.result-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- Focus states ---------- */
+button:focus-visible,
+.upload-panel:focus-visible,
+.compare-slider:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

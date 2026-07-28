@@ -1,0 +1,4 @@
+venv/
+app/weights/*.pth
+__pycache__/
+*.pyc
