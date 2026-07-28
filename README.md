@@ -1,213 +1,130 @@
-# Neurio — Explainable Alzheimer's MRI Staging (Full-Stack)
+# Neurio — Explainable Alzheimer's MRI Staging
 
-A minimal full-stack demo that wraps a ResNet-18 classifier + Grad-CAM visualization into a simple web product: upload an MRI slice, get a 4-class predicted stage and a Grad-CAM heatmap overlay shown with a before/after slider. Built as a FastAPI inference backend (PyTorch) and a React + Vite frontend.
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-005571?logo=fastapi)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.x-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Why this exists: researcher/portfolio demo to visualize which brain regions drive a CNN prediction. Not medical software — for research and demonstration only.
+A full-stack diagnostic-viewer app around a ResNet-18 + Grad-CAM model that
+classifies brain MRI scans into four Alzheimer's stages — and shows *why*,
+via an interactive heatmap slider, instead of returning a black-box label.
 
----
+Built on top of the original ML research in
+[Explainable-Alzheimers-Detection](https://github.com/manbhavsingh/Explainable-Alzheimers-Detection)
+(90% test accuracy ResNet-18 classifier with Grad-CAM interpretability),
+wrapped in a FastAPI backend and React frontend so it's usable as a real
+tool instead of a notebook.
 
-## Table of contents
-- <a>Features</a>
-- <a>Stack &amp; notable libraries</a>
-- <a>Repository layout</a>
-- <a>Get the trained model weights</a>
-- <a>Run locally</a>
-  - <a>Backend (FastAPI)</a>
-  - <a>Frontend (React + Vite)</a>
-- <a>API</a>
-- <a>Deployment notes</a>
-- <a>Troubleshooting</a>
-- <a>Contributing</a>
-- <a>License</a>
-- <a>Acknowledgements</a>
+## Demo
 
----
+![Neurio prediction result — Mild Demented, 52% confidence, with Grad-CAM heatmap slider](docs/screenshot-result.png)
 
-## Features
-- Single-file upload (PNG/JPEG) → 4-class Alzheimer’s staging prediction
-- Grad-CAM heatmap generation and overlay (returned as base64 PNGs)
-- Synchronized slider UI to compare original image and Grad-CAM overlay
-- Simple health-check and ready-to-deploy project structure for Render (backend) + Vercel (frontend)
+*Upload a scan → get a predicted stage, confidence breakdown, and a
+drag-to-reveal comparison between the raw MRI and the model's attention
+heatmap.*
 
----
+## Architecture
+├── backend/ FastAPI inference API — loads the trained ResNet-18,
+│ runs classification + Grad-CAM, returns JSON + base64 images
+└── frontend/ React + Vite UI — upload, results display, compare slider
+`POST /predict` (multipart, PNG/JPEG ≤10MB) → predicted stage, per-class
+confidence scores, and a Grad-CAM overlay image.
 
-## Stack &amp; notable libraries
-- Languages: Python (backend), JavaScript/React (frontend)
-- Frameworks / runtime:
-  - Backend: FastAPI + Uvicorn
-  - Frontend: React + Vite
-- Notable libraries:
-  - PyTorch (model inference)
-  - grad-cam (or custom Grad-CAM logic in repo)
-  - Pillow / NumPy (image handling)
-  - React (UI) + Vite (dev server &amp; build)
+## How this was built
+
+The ML model (ResNet-18 fine-tuning, Grad-CAM implementation, training
+pipeline) is from the original research notebook. The full-stack layer —
+FastAPI backend, React frontend, deployment config — was built with Claude
+as a learning project to turn a research notebook into a usable app.
 
 ---
 
-## Repository layout
-```
-README.md
-backend/                 FastAPI app, model, inference utilities, Dockerfile, Render config
-  ├─ app/
-  │  ├─ main.py           FastAPI routes and startup
-  │  ├─ inference.py      image preprocessing, model loading, Grad-CAM generation
-  │  ├─ model.py          model architecture (must match training)
-  │  └─ weights/          place trained checkpoint here (best_resnet.pth)
-  ├─ requirements.txt
-  └─ Dockerfile
-frontend/                React + Vite UI
-  ├─ index.html
-  ├─ package.json
-  ├─ src/
-  │  ├─ App.jsx
-  │  └─ components/      UploadPanel, ResultPanel, CompareSlider
-  └─ .env.example
-```
+## 1. Get your trained weights
 
-How it fits together: The frontend posts an uploaded PNG/JPEG to the backend `/predict` endpoint. The backend loads the trained checkpoint, runs a forward pass to compute class probabilities and a Grad-CAM heatmap, then returns the prediction + two base64 images (original + overlay). Frontend displays them with a slider.
+This repo does not include `best_resnet.pth` — the original repo trains it
+inside a Kaggle notebook and never commits the checkpoint. You need to
+export it once:
 
----
+1. Open `hack4health-alzheimer-mri-cnn.ipynb` on Kaggle (or locally, with
+   the MRI parquet dataset available) and run it top to bottom. It already
+   saves the best checkpoint to `best_resnet.pth` during training (see the
+   training-loop and Grad-CAM cells).
+2. Download `best_resnet.pth` from the Kaggle output panel (or your local
+   working directory).
+3. Place it at `backend/app/weights/best_resnet.pth`.
 
-## Get the trained model weights (required)
-This repository intentionally does NOT include the trained checkpoint file `best_resnet.pth`. You must obtain it from the original training notebook (or a saved copy) and place it at:
+The backend refuses to start inference (returns HTTP 503 with a clear
+message) until this file exists, so you'll know immediately if it's
+missing.
 
-```
-backend/app/weights/best_resnet.pth
-```
+## 2. Run locally
 
-Options:
-- Re-run the original Kaggle notebook `hack4health-alzheimer-mri-cnn.ipynb` and download `best_resnet.pth`.
-- Use Git LFS to store the checkpoint (recommended if you want it in the repo).
-- Upload the checkpoint to a storage service (S3, Hugging Face Hub) and modify `app/inference.py:load_model()` to download it on startup (example snippet below).
-
-Example snippet to download model on first run (add to load_model if you host the file externally):
-```python
-import os
-import requests
-
-MODEL_PATH = "app/weights/best_resnet.pth"
-MODEL_URL = os.getenv("MODEL_URL")  # set this to the public S3/HF URL
-
-if not os.path.exists(MODEL_PATH) and MODEL_URL:
-    r = requests.get(MODEL_URL, stream=True)
-    r.raise_for_status()
-    with open(MODEL_PATH, "wb") as f:
-        for chunk in r.iter_content(chunk_size=8192):
-            f.write(chunk)
-```
-
----
-
-## Run locally
-
-Requirements:
-- Python 3.8+ (backend)
-- Node.js 16+ / npm (frontend)
-- The checkpoint at backend/app/weights/best_resnet.pth
-
-Backend (local development)
+**Backend:**
 ```bash
 cd backend
-python -m venv venv
-# macOS / Linux
-source venv/bin/activate
-# Windows (PowerShell)
-# venv\Scripts\Activate.ps1
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# ensure backend/app/weights/best_resnet.pth exists
+# make sure app/weights/best_resnet.pth exists (see step 1)
 uvicorn app.main:app --reload --port 8000
 ```
-Health check: GET http://localhost:8000/health  → {"status": "ok"}
+Visit `http://localhost:8000/health` — should return `{"status": "ok"}`.
 
-Frontend (local development)
+**Frontend:**
 ```bash
 cd frontend
 npm install
-cp .env.example .env        # or set VITE_API_URL=http://localhost:8000
+cp .env.example .env      # VITE_API_URL=http://localhost:8000
 npm run dev
 ```
-Open the local Vite URL printed by the dev server (usually http://localhost:5173).
+Open the printed local URL (typically `http://localhost:5173`).
 
----
+## 3. Deploy
+
+**Backend → Render**
+1. Push this repo to GitHub.
+2. In Render: New → Web Service → connect the repo, set root directory to
+   `backend`. Render will pick up `render.yaml` automatically (Docker
+   runtime, health check at `/health`).
+3. **Important:** `best_resnet.pth` isn't in git (it's large — add it to
+   `.gitignore` or use Git LFS). Either:
+   - commit it via Git LFS, or
+   - add it as a [Render persistent disk](https://render.com/docs/disks) /
+     upload it into the container at build time, or
+   - host it externally (S3, HF Hub) and have `app/inference.py` download
+     it on first boot — small change to `load_model()` if you go this route.
+4. Set `ALLOWED_ORIGINS` env var to your deployed frontend URL once you
+   have it (step below), to lock down CORS.
+
+**Frontend → Vercel**
+1. In Vercel: New Project → import the repo → set root directory to
+   `frontend`.
+2. Framework preset: Vite (auto-detected via `vercel.json`).
+3. Add env var `VITE_API_URL` = your Render backend URL
+   (e.g. `https://alzheimers-detection-api.onrender.com`).
+4. Deploy. Then go back to Render and set `ALLOWED_ORIGINS` to this
+   Vercel URL.
 
 ## API
 
-POST /predict
-- Content-Type: multipart/form-data
-- Field: `file` — PNG/JPEG file (&lt;= 10MB)
+`POST /predict` — multipart form, field `file` (PNG/JPEG, ≤10MB).
 
-curl example:
-```bash
-curl -X POST "http://localhost:8000/predict" \
-  -F "file=@/path/to/brain_slice.png" \
-  -H "Accept: application/json"
-```
-
-Sample JSON response:
+Response:
 ```json
 {
   "predicted_class": "Mild Demented",
   "predicted_index": 2,
   "confidence": 0.87,
-  "probabilities": {
-    "Non-Demented": 0.02,
-    "Very Mild Demented": 0.09,
-    "Mild Demented": 0.87,
-    "Moderate Demented": 0.02
-  },
-  "original_image": "data:image/png;base64,<...>",
-  "gradcam_overlay": "data:image/png;base64,<...>"
+  "probabilities": { "Non-Demented": 0.02, "...": "..." },
+  "original_image": "data:image/png;base64,...",
+  "gradcam_overlay": "data:image/png;base64,..."
 }
 ```
 
-Notes:
-- The backend returns base64-encoded PNG data URIs for quick in-browser display.
-- If the checkpoint is missing, the service returns HTTP 503 with an explanatory message.
+## Notes
 
----
-
-## Deployment notes
-
-Backend → Render
-- Create a Render Web Service and set the root to `backend/`.
-- This repo includes `backend/render.yaml` and a Dockerfile to help deployment.
-- Options for providing the checkpoint:
-  - Commit via Git LFS
-  - Use Render persistent disk and upload the file into the container
-  - Host externally and download on startup (see snippet above)
-- Set environment variable `ALLOWED_ORIGINS` to your frontend URL to restrict CORS.
-
-Frontend → Vercel
-- Create a new Vercel Project, set root to `frontend/`, framework preset Vite.
-- Add env var `VITE_API_URL` pointing to your backend (e.g., `https://<render-app>.onrender.com`).
-
-CORS: After deploying, set the backend `ALLOWED_ORIGINS` to the frontend deployment URL.
-
----
-
-## Troubleshooting
-- 503 on /predict: most likely the model checkpoint is missing. Confirm `backend/app/weights/best_resnet.pth` exists.
-- Model load errors (size mismatch / missing keys): ensure `backend/app/model.py` exactly matches the architecture used during training.
-- Slow inference on CPU: consider using a GPU-enabled instance or optimize to TorchScript if needed.
-- Check backend logs (Docker / Render logs / uvicorn console) for stack traces.
-
----
-
-## Contributing
-- Issues and PRs welcome — this is a research demo. If you add checkpoints, consider using Git LFS or external hosting.
-- Suggestions:
-  - Add model download support via MODEL_URL + secure storage.
-  - Add unit tests for preprocessing and a small integration test for the `/predict` route.
-  - Improve security (rate-limiting / authentication) before exposing a public endpoint.
-
----
-
-## License
-No license file included in this repository. Add a LICENSE to clarify reuse (MIT / Apache-2.0 / etc.) if you intend public distribution.
-
----
-
-## Acknowledgements
-- Built from the training notebook in Explainable-Alzheimers-Detection and adapted into a full-stack demo.
-- If you use or adapt this project, please include a short note attributing the training/implementation sources.
+- This is a research/portfolio tool, not a diagnostic device — the UI
+  says so, and any real deployment should too.
+- The model architecture in `backend/app/model.py` must exactly match the
+  training notebook's (grayscale conv1, 4-class fc head) or the checkpoint
+  won't load correctly — it's copied verbatim from the notebook.
