@@ -128,3 +128,29 @@ Response:
 - The model architecture in `backend/app/model.py` must exactly match the
   training notebook's (grayscale conv1, 4-class fc head) or the checkpoint
   won't load correctly — it's copied verbatim from the notebook.
+
+## Deployment Notes
+
+Neurio is deployed with a FastAPI backend on Render and a React + Vite frontend on Vercel.
+
+**Live app:** https://alzheimers-mri-fullstack.vercel.app
+**Backend API:** https://alzheimers-mri-fullstack.onrender.com
+
+### Challenges solved during deployment
+
+- **Memory limits on Render's free tier (512MB):** The default `torch` package pulls
+  in a CUDA-enabled build (~700MB+), which exceeded Render's memory limit even though
+  no GPU is available in production. Switched to the CPU-only PyTorch wheel via: --extra-index-url https://download.pytorch.org/whl/cpu
+  in `requirements.txt`, cutting memory usage significantly and resolving repeated
+  service restarts.
+
+- **Single-worker inference:** Ensured Uvicorn runs with `--workers 1` so the ResNet-18
+  model is loaded into memory only once, not duplicated per worker process.
+
+- **CORS between Vercel and Render:** The deployed frontend (Vercel) and backend
+  (Render) run on different origins, so the FastAPI backend explicitly allows the
+  Vercel domain via `CORSMiddleware`, configured through an `ALLOWED_ORIGINS`
+  environment variable rather than hardcoding it.
+
+- **Cold starts:** Render's free tier spins down after inactivity, so the first
+  request after idle time can take 30-60s while the container restarts.
