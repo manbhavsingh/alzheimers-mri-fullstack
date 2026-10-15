@@ -38,6 +38,28 @@ def test_api_root_is_discoverable():
     assert head_response.status_code == 200
 
 
+
+def test_cors_allows_vercel_preview_origin():
+    async def preflight():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.options(
+                "/report",
+                headers={
+                    "Origin": "https://alzheimers-mri-fullstack-git-feature-ai-report-manbhavsingh8860s-projects.vercel.app",
+                    "Access-Control-Request-Method": "POST",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            )
+
+    response = asyncio.run(preflight())
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"].endswith(".vercel.app")
+
 def test_gradcam_note_focused_upper_left():
     cam = np.zeros((10, 10), dtype=np.float32)
     cam[0:2, 0:2] = 0.9
