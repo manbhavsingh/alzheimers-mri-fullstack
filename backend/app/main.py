@@ -42,12 +42,14 @@ _REPORT_RATE_LOCK = Lock()
 
 class ReportRequest(BaseModel):
     label: str = Field(min_length=1, max_length=120)
-    probs: dict[str, Probability] = Field(min_length=1, max_length=16)
+    probs: dict[str, Probability]
     gradcam_note: str | None = Field(default=None, min_length=1, max_length=2000)
     cam: list[list[ActivationValue]] | None = None
 
     @model_validator(mode="after")
     def validate_cam_or_note(self):
+        if not 1 <= len(self.probs) <= 16:
+            raise ValueError("probs must contain between 1 and 16 class scores.")
         if (self.cam is None) == (self.gradcam_note is None):
             raise ValueError("Provide exactly one of gradcam_note or cam.")
         if self.cam is not None:
