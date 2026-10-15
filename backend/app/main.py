@@ -85,7 +85,7 @@ def _enforce_report_rate_limit(client_ip: str) -> None:
         bucket.append(now)
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def root():
     """Provide a helpful landing response for the API base URL."""
     return {
