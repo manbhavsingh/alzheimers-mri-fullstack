@@ -18,8 +18,8 @@ app = FastAPI(
     version="1.1.0",
 )
 
-# Restrict production access to the configured frontend, and allow Vercel Preview aliases
-# so feature branches can be tested before their changes are merged.
+# Restrict access to the production frontend, while allowing Vercel Preview aliases
+# for pre-merge testing. ALLOWED_ORIGINS can list additional exact origins.
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
