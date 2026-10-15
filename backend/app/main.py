@@ -38,6 +38,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 ALLOWED_CONTENT_TYPES = {"image/png", "image/jpeg", "image/jpg"}
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
