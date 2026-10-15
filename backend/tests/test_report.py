@@ -26,6 +26,17 @@ def test_api_root_is_discoverable():
     assert response.json()["health"] == "/health"
     assert response.json()["docs"] == "/docs"
 
+    async def request_head():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.head("/")
+
+    head_response = asyncio.run(request_head())
+    assert head_response.status_code == 200
+
 
 def test_gradcam_note_focused_upper_left():
     cam = np.zeros((10, 10), dtype=np.float32)
