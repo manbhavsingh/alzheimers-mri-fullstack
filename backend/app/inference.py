@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
+from .gradcam_note import gradcam_note
 from .model import CLASS_NAMES, GradCAM, build_model, inference_transform
 
 WEIGHTS_PATH = os.getenv("MODEL_WEIGHTS_PATH", "app/weights/best_resnet.pth")
@@ -94,4 +95,7 @@ def predict(image_bytes: bytes) -> dict:
         },
         "original_image": _image_to_data_url(pil_image),
         "gradcam_overlay": _overlay_heatmap(pil_image, cam),
+        # Metadata only: this summarizes the already-computed CAM and does
+        # not alter classification, confidence scores, or model execution.
+        "gradcam_note": gradcam_note(cam),
     }
