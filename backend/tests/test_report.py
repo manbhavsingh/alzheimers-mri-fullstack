@@ -1,8 +1,9 @@
 from types import SimpleNamespace
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, Mock, patch
 
 import numpy as np
 from fastapi.testclient import TestClient
+
 from app.gradcam_note import gradcam_note
 from app.main import app
 from app.report import Report
@@ -47,21 +48,10 @@ def test_report_endpoint_with_gemini_mocked(monkeypatch):
         ],
         next_steps=["Discuss the result with a qualified doctor."],
     )
-    mock_client = SimpleNamespace(
-        models=SimpleNamespace(
-            generate_content=SimpleNamespace(
-                __call__=lambda **kwargs: SimpleNamespace(
-                    parsed=expected,
-                    text=expected.model_dump_json(),
-                )
-            )
-        ),
-        close=lambda: None,
-    )
-    # Use a callable mock for the Gemini SDK method so no network request occurs.
-    from unittest.mock import Mock
-    mock_client.models.generate_content = Mock(
-        return_value=SimpleNamespace(parsed=expected, text=expected.model_dump_json())
+    mock_client = Mock()
+    mock_client.models.generate_content.return_value = SimpleNamespace(
+        parsed=expected,
+        text=expected.model_dump_json(),
     )
 
     with patch("app.report.genai.Client", return_value=mock_client) as client_factory:
@@ -83,3 +73,4 @@ def test_report_endpoint_with_gemini_mocked(monkeypatch):
     assert response.json() == expected.model_dump()
     client_factory.assert_called_once_with(api_key="test-only-key", http_options=ANY)
     mock_client.models.generate_content.assert_called_once()
+    mock_client.close.assert_called_once()
