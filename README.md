@@ -100,8 +100,9 @@ Open the printed local URL (typically `http://localhost:5173`).
 1. In Vercel: New Project → import the repo → set root directory to
    `frontend`.
 2. Framework preset: Vite (auto-detected via `vercel.json`).
-3. Add env var `VITE_API_URL` = your Render backend URL
-   (e.g. `https://alzheimers-detection-api.onrender.com`).
+3. Production builds use the active Render API URL configured in `frontend/src/App.jsx`.
+   For local development, copy `.env.example` to `.env` and use
+   `VITE_API_URL=http://localhost:8000`.
 4. Deploy. Then go back to Render and set `ALLOWED_ORIGINS` to this
    Vercel URL.
 
@@ -121,6 +122,36 @@ Response:
 }
 ```
 
+
+## AI report explainer (Gemini)
+
+After a prediction, choose **Generate report** to request a plain-language explanation of the predicted class, class scores, and Grad-CAM summary. The backend uses the Google Gen AI SDK with `gemini-2.5-flash` and validates the structured response with Pydantic. The report includes a summary, a confidence note, caveats, and suggested next steps.
+
+The report is explanatory only: the model scores are not clinical probabilities, Grad-CAM attention is not proof of an anatomical finding, and a doctor must confirm any clinical interpretation. The backend sends prediction metadata to Gemini, not the uploaded MRI image. The `/report` endpoint is limited to 10 requests per minute per client IP.
+
+### Configure the Gemini API key
+
+1. Create a Gemini API key in Google AI Studio.
+2. Use `backend/.env.example` as the variable-name reference. For local development, export the real key before starting the backend:
+
+```bash
+export GEMINI_API_KEY="your_real_key_here"
+cd backend
+uvicorn app.main:app --reload --port 8000
+```
+
+3. In Render, add `GEMINI_API_KEY` in the backend service's **Environment** settings. Never put this secret in `frontend/.env`, a `VITE_*` variable, or a committed file.
+
+If the key is missing or Gemini times out/fails, the endpoint returns a clear error and the frontend offers a retry.
+
+### Run backend tests
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest -q
+```
+
 ## Notes
 
 - This is a research/portfolio tool, not a diagnostic device — the UI
@@ -134,7 +165,7 @@ Response:
 Neurio is deployed with a FastAPI backend on Render and a React + Vite frontend on Vercel.
 
 **Live app:** https://alzheimers-mri-fullstack.vercel.app
-**Backend API:** https://alzheimers-mri-fullstack.onrender.com
+**Backend API:** https://alzheimers-mri-fullstack-1.onrender.com
 
 ### Challenges solved during deployment
 
