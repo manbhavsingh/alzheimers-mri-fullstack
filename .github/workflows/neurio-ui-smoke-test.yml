@@ -1,0 +1,124 @@
+name: Neurio frontend-to-backend UI smoke test
+
+on:
+  push:
+    branches:
+      - feature/ai-report
+
+permissions:
+  contents: read
+
+jobs:
+  ui-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser test
+        run: |
+          mkdir -p /tmp/neurio-ui-test
+          cd /tmp/neurio-ui-test
+          npm init -y >/dev/null
+          npm install playwright
+          npx playwright install --with-deps chromium
+      - name: Exercise Vercel Preview, upload sample MRI, generate report
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error \
+            'https://raw.githubusercontent.com/manbhavsingh/Explainable-Alzheimers-Detection/main/class_0_example_4.png' \
+            --output /tmp/sample-mri.png
+          cat > /tmp/neurio-ui-test/test-ui.cjs <<'JS'
+          const { chromium } = require("playwright");
+
+          (async () => {
+            const candidates = [
+              "https://alzheimers-mri-fullstack-git-feature-ai-report-manbhavsingh8860s-projects.vercel.app",
+              "https://alzheimers-mri-fullstack.vercel.app",
+            ];
+            const browser = await chromium.launch({ headless: true });
+            let errors = [];
+            let chosen = null;
+            let page = null;
+
+            try {
+              for (const url of candidates) {
+                const candidatePage = await browser.newPage();
+                candidatePage.on("pageerror", e => errors.push("pageerror: " + e.message));
+                candidatePage.on("console", msg => {
+                  if (msg.type() === "error") errors.push("console: " + msg.text());
+                });
+                try {
+                  const response = await candidatePage.goto(url, {
+                    waitUntil: "domcontentloaded",
+                    timeout: 20000
+                  });
+                  const upload = await candidatePage.locator('input[type="file"]').count();
+                  if (response && response.status() < 400 && upload > 0) {
+                    chosen = url;
+                    page = candidatePage;
+                    console.log("Frontend loaded:", url, "HTTP", response.status());
+                    break;
+                  }
+                  await candidatePage.close();
+                } catch (e) {
+                  console.log("Candidate not ready:", url, e.message);
+                  await candidatePage.close().catch(() => {});
+                }
+              }
+
+              if (!page) {
+                throw new Error("Could not access an unprotected Neurio Vercel preview with an MRI upload control.");
+              }
+
+              const upload = page.locator('input[type="file"]').first();
+              await upload.setInputFiles({
+                name: "class_0_example_4.png",
+                mimeType: "image/png",
+                buffer: require("fs").readFileSync("/tmp/sample-mri.png")
+              });
+
+              console.log("Waiting for live prediction...");
+              await page.locator(".result-panel").waitFor({ state: "visible", timeout: 150000 });
+              const label = (await page.locator(".result-headline h2").innerText()).trim();
+              console.log("UI prediction displayed:", label);
+
+              const generate = page.getByRole("button", { name: /generate report/i });
+              await generate.waitFor({ state: "visible", timeout: 10000 });
+              console.log("Generate report button is visible.");
+
+              const reportResponsePromise = page.waitForResponse(
+                response => response.url().endsWith("/report") && response.request().method() === "POST",
+                { timeout: 45000 }
+              );
+              await generate.click();
+              const reportResponse = await reportResponsePromise;
+              console.log("Report request:", reportResponse.url(), "HTTP", reportResponse.status());
+              if (!reportResponse.ok()) {
+                console.log("Report error body:", (await reportResponse.text()).slice(0, 1200));
+                throw new Error("Frontend /report request failed with HTTP " + reportResponse.status());
+              }
+
+              await page.locator(".report-card").waitFor({ state: "visible", timeout: 10000 });
+              const reportText = (await page.locator(".report-card").innerText()).trim();
+              if (!reportText.includes("SUMMARY") || !reportText.includes("NEXT STEPS")) {
+                throw new Error("Report card did not render all expected sections.");
+              }
+              const disclaimer = await page.getByText("AI-generated explanation. Not medical advice. Consult a doctor.").count();
+              if (disclaimer < 1) throw new Error("Medical disclaimer is missing.");
+
+              console.log("PASS: prediction, button click, Gemini report response, report card, and disclaimer.");
+              console.log("Frontend tested:", chosen);
+              console.log("Browser errors:", JSON.stringify(errors.slice(0, 15)));
+            } finally {
+              await browser.close();
+            }
+          })().catch(e => {
+            console.error(e.stack || e);
+            process.exit(1);
+          });
+          JS
+          node /tmp/neurio-ui-test/test-ui.cjs
