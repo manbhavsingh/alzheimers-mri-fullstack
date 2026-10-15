@@ -18,17 +18,26 @@ app = FastAPI(
     version="1.1.0",
 )
 
-# Restrict this to your deployed frontend origin in production via env var.
-ALLOWED_ORIGINS = [\n    origin.strip()\n    for origin in os.getenv(\n        "ALLOWED_ORIGINS",\n        "https://alzheimers-mri-fullstack.vercel.app",\n    ).split(",")\n    if origin.strip()\n]\n# Permit Vercel Preview aliases as well as the production origin above.\nVERCEL_ORIGIN_REGEX = r"https://[a-zA-Z0-9-]+\\.vercel\\.app"
+# Restrict production access to the configured frontend, and allow Vercel Preview aliases
+# so feature branches can be tested before their changes are merged.
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "https://alzheimers-mri-fullstack.vercel.app",
+    ).split(",")
+    if origin.strip()
+]
+VERCEL_ORIGIN_REGEX = r"https://[a-zA-Z0-9-]+\.vercel\.app"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=VERCEL_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 ALLOWED_CONTENT_TYPES = {"image/png", "image/jpeg", "image/jpg"}
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 
