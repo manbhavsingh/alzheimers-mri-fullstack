@@ -1,0 +1,41 @@
+name: Neurio Vercel CORS smoke check
+
+on:
+  push:
+    branches:
+      - feature/ai-report
+
+permissions:
+  contents: read
+
+jobs:
+  cors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Verify Vercel preview preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://alzheimers-mri-fullstack-1.onrender.com"
+          origin="https://alzheimers-mri-fullstack-git-f114ae-manbhavsingh8860s-projects.vercel.app"
+          for i in $(seq 1 12); do
+            if curl --silent --show-error --fail "$base/health" >/dev/null; then break; fi
+            sleep 5
+          done
+          status=$(curl --silent --show-error --max-time 20 \
+            --output /tmp/preflight.txt \
+            --dump-header /tmp/headers.txt \
+            --write-out '%{http_code}' \
+            --request OPTIONS "$base/report" \
+            --header "Origin: $origin" \
+            --header 'Access-Control-Request-Method: POST' \
+            --header 'Access-Control-Request-Headers: content-type')
+          cat /tmp/headers.txt
+          cat /tmp/preflight.txt
+          [[ "$status" == "200" ]] || { echo "Preflight returned HTTP $status"; exit 1; }
+          grep -iqF "access-control-allow-origin: $origin" /tmp/headers.txt || {
+            echo "Expected Vercel preview origin was not allowed by CORS."
+            exit 1
+          }
+          echo "PASS: Render allows the Vercel preview origin for POST /report."
