@@ -36,8 +36,7 @@ jobs:
 
           (async () => {
             const candidates = [
-              "https://alzheimers-mri-fullstack-git-feature-ai-report-manbhavsingh8860s-projects.vercel.app",
-              "https://alzheimers-mri-fullstack.vercel.app",
+              "https://alzheimers-mri-fullstack-git-f114ae-manbhavsingh8860s-projects.vercel.app",
             ];
             const browser = await chromium.launch({ headless: true });
             let errors = [];
@@ -71,7 +70,7 @@ jobs:
               }
 
               if (!page) {
-                throw new Error("Could not access an unprotected Neurio Vercel preview with an MRI upload control.");
+                throw new Error("Could not access the exact Vercel Preview deployment from the GitHub Vercel check.");
               }
 
               const upload = page.locator('input[type="file"]').first();
