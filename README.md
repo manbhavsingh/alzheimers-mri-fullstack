@@ -121,6 +121,36 @@ Response:
 }
 ```
 
+
+## AI report explainer (Gemini)
+
+After a prediction, choose **Generate report** to request a plain-language explanation of the predicted class, class scores, and Grad-CAM summary. The backend uses the Google Gen AI SDK with `gemini-2.5-flash` and validates the structured response with Pydantic. The report includes a summary, a confidence note, caveats, and suggested next steps.
+
+The report is explanatory only: the model scores are not clinical probabilities, Grad-CAM attention is not proof of an anatomical finding, and a doctor must confirm any clinical interpretation. The backend sends prediction metadata to Gemini, not the uploaded MRI image. The `/report` endpoint is limited to 10 requests per minute per client IP.
+
+### Configure the Gemini API key
+
+1. Create a Gemini API key in Google AI Studio.
+2. Use `backend/.env.example` as the variable-name reference. For local development, export the real key before starting the backend:
+
+```bash
+export GEMINI_API_KEY="your_real_key_here"
+cd backend
+uvicorn app.main:app --reload --port 8000
+```
+
+3. In Render, add `GEMINI_API_KEY` in the backend service's **Environment** settings. Never put this secret in `frontend/.env`, a `VITE_*` variable, or a committed file.
+
+If the key is missing or Gemini times out/fails, the endpoint returns a clear error and the frontend offers a retry.
+
+### Run backend tests
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest -q
+```
+
 ## Notes
 
 - This is a research/portfolio tool, not a diagnostic device — the UI
