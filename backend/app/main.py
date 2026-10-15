@@ -85,6 +85,19 @@ def _enforce_report_rate_limit(client_ip: str) -> None:
         bucket.append(now)
 
 
+@app.get("/")
+def root():
+    """Provide a helpful landing response for the API base URL."""
+    return {
+        "service": "Neurio API",
+        "status": "ok",
+        "health": "/health",
+        "docs": "/docs",
+        "report_endpoint": "POST /report",
+        "prediction_endpoint": "POST /predict",
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
