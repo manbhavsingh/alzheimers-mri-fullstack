@@ -7,3 +7,5 @@ torchvision
 opencv-python-headless==4.10.0.84
 numpy==1.26.4
 pillow==10.4.0
+google-genai>=1.0.0,<2
+pydantic>=2.8.2,<3
