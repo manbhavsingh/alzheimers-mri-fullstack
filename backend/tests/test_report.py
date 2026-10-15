@@ -1,8 +1,9 @@
+import asyncio
 from types import SimpleNamespace
 from unittest.mock import ANY, Mock, patch
 
+import httpx
 import numpy as np
-from fastapi.testclient import TestClient
 
 from app.gradcam_note import gradcam_note
 from app.main import app
@@ -54,20 +55,28 @@ def test_report_endpoint_with_gemini_mocked(monkeypatch):
         text=expected.model_dump_json(),
     )
 
-    with patch("app.report.genai.Client", return_value=mock_client) as client_factory:
-        response = TestClient(app).post(
-            "/report",
-            json={
-                "label": "Mild Demented",
-                "probs": {
-                    "Non-Demented": 0.05,
-                    "Very Mild Demented": 0.15,
-                    "Mild Demented": 0.70,
-                    "Moderate Demented": 0.10,
+    async def request_report():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.post(
+                "/report",
+                json={
+                    "label": "Mild Demented",
+                    "probs": {
+                        "Non-Demented": 0.05,
+                        "Very Mild Demented": 0.15,
+                        "Mild Demented": 0.70,
+                        "Moderate Demented": 0.10,
+                    },
+                    "gradcam_note": "Activation centroid: middle-center. Spread: moderate.",
                 },
-                "gradcam_note": "Activation centroid: middle-center. Spread: moderate.",
-            },
-        )
+            )
+
+    with patch("app.report.genai.Client", return_value=mock_client) as client_factory:
+        response = asyncio.run(request_report())
 
     assert response.status_code == 200
     assert response.json() == expected.model_dump()
