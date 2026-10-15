@@ -10,11 +10,17 @@ export default function App() {
   const [status, setStatus] = useState("idle"); // idle | loading | done | error
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [reportStatus, setReportStatus] = useState("idle"); // idle | loading | done | error
+  const [report, setReport] = useState(null);
+  const [reportError, setReportError] = useState("");
 
   const handleFileSelected = async (file) => {
     setStatus("loading");
     setErrorMsg("");
     setResult(null);
+    setReportStatus("idle");
+    setReport(null);
+    setReportError("");
 
     const formData = new FormData();
     formData.append("file", file);
@@ -39,10 +45,54 @@ export default function App() {
     }
   };
 
+
+  const handleGenerateReport = async () => {
+    if (!result) return;
+
+    setReportStatus("loading");
+    setReport(null);
+    setReportError("");
+
+    const note =
+      result.gradcam_note ||
+      "The prediction response did not include the raw Grad-CAM activation map, so no region-level activation summary is available.";
+
+    try {
+      const res = await fetch(`${API_URL}/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label: result.predicted_class,
+          probs: result.probabilities,
+          gradcam_note: note,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || "The report service could not generate an explanation.");
+      }
+
+      const data = await res.json();
+      setReport(data);
+      setReportStatus("done");
+    } catch (err) {
+      setReportError(
+        err.message === "Failed to fetch"
+          ? "Unable to reach the report service. Check your connection and try again."
+          : err.message || "Something went wrong while generating the report."
+      );
+      setReportStatus("error");
+    }
+  };
+
   const reset = () => {
     setStatus("idle");
     setResult(null);
     setErrorMsg("");
+    setReportStatus("idle");
+    setReport(null);
+    setReportError("");
   };
 
   return (
@@ -91,13 +141,22 @@ export default function App() {
               originalSrc={result.original_image}
               overlaySrc={result.gradcam_overlay}
             />
-            <ResultPanel result={result} />
+            <ResultPanel
+              result={result}
+              onGenerateReport={handleGenerateReport}
+              reportStatus={reportStatus}
+              report={report}
+              reportError={reportError}
+            />
             <button className="btn-secondary new-scan-btn" onClick={reset}>
               ↺ Analyze another scan
             </button>
           </div>
         )}
       </main>
+      <footer className="medical-disclaimer" role="note">
+        AI-generated explanation. Not medical advice. Consult a doctor.
+      </footer>
     </div>
   );
 }
