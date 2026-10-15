@@ -19,7 +19,7 @@ app = FastAPI(
 )
 
 # Restrict this to your deployed frontend origin in production via env var.
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+ALLOWED_ORIGINS = [\n    origin.strip()\n    for origin in os.getenv(\n        "ALLOWED_ORIGINS",\n        "https://alzheimers-mri-fullstack.vercel.app",\n    ).split(",")\n    if origin.strip()\n]\n# Permit Vercel Preview aliases as well as the production origin above.\nVERCEL_ORIGIN_REGEX = r"https://[a-zA-Z0-9-]+\\.vercel\\.app"
 
 app.add_middleware(
     CORSMiddleware,
