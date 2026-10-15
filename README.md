@@ -100,8 +100,9 @@ Open the printed local URL (typically `http://localhost:5173`).
 1. In Vercel: New Project → import the repo → set root directory to
    `frontend`.
 2. Framework preset: Vite (auto-detected via `vercel.json`).
-3. Add env var `VITE_API_URL` = your Render backend URL
-   (e.g. `https://alzheimers-detection-api.onrender.com`).
+3. Production builds use the active Render API URL configured in `frontend/src/App.jsx`.
+   For local development, copy `.env.example` to `.env` and use
+   `VITE_API_URL=http://localhost:8000`.
 4. Deploy. Then go back to Render and set `ALLOWED_ORIGINS` to this
    Vercel URL.
 
