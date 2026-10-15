@@ -164,7 +164,7 @@ pytest -q
 Neurio is deployed with a FastAPI backend on Render and a React + Vite frontend on Vercel.
 
 **Live app:** https://alzheimers-mri-fullstack.vercel.app
-**Backend API:** https://alzheimers-mri-fullstack.onrender.com
+**Backend API:** https://alzheimers-mri-fullstack-1.onrender.com
 
 ### Challenges solved during deployment
 
