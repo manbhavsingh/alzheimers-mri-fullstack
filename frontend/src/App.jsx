@@ -4,7 +4,10 @@ import CompareSlider from "./components/CompareSlider.jsx";
 import ResultPanel from "./components/ResultPanel.jsx";
 import "./App.css";
 
-const API_URL = (import.meta.env.VITE_API_URL || "https://alzheimers-mri-fullstack-1.onrender.com").replace(/\/+$/, "");
+const API_URL = (import.meta.env.DEV
+  ? (import.meta.env.VITE_API_URL || "http://localhost:8000")
+  : "https://alzheimers-mri-fullstack-1.onrender.com"
+).replace(/\/+$/, "");
 
 export default function App() {
   const [status, setStatus] = useState("idle"); // idle | loading | done | error
