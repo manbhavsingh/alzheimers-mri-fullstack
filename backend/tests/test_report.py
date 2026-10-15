@@ -10,6 +10,23 @@ from app.main import app
 from app.report import Report
 
 
+def test_api_root_is_discoverable():
+    async def request_root():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client:
+            return await client.get("/")
+
+    response = asyncio.run(request_root())
+
+    assert response.status_code == 200
+    assert response.json()["service"] == "Neurio API"
+    assert response.json()["health"] == "/health"
+    assert response.json()["docs"] == "/docs"
+
+
 def test_gradcam_note_focused_upper_left():
     cam = np.zeros((10, 10), dtype=np.float32)
     cam[0:2, 0:2] = 0.9
