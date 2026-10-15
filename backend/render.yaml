@@ -6,7 +6,9 @@ services:
     plan: starter
     envVars:
       - key: ALLOWED_ORIGINS
-        value: "https://your-frontend.vercel.app"
+        value: "https://alzheimers-mri-fullstack.vercel.app"
       - key: MODEL_WEIGHTS_PATH
         value: "app/weights/best_resnet.pth"
+      - key: GEMINI_API_KEY
+        sync: false
     healthCheckPath: /health
